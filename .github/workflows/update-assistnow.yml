@@ -2,8 +2,8 @@ name: Update AssistNow UBX
 
 on:
   schedule:
-    # 每天 UTC 18:17 运行一次，避免整点拥堵
-    - cron: "17 18 * * *"
+    # 每天 UTC 00:10 运行一次，避免整点拥堵
+    - cron: "10 16 * * *"
   workflow_dispatch:
 
 permissions:
