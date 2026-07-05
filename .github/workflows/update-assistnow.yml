@@ -1,0 +1,50 @@
+name: Update AssistNow UBX
+
+on:
+  schedule:
+    # 每天 UTC 18:17 运行一次，避免整点拥堵
+    - cron: "17 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-assistnow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Download AssistNow and generate manifest
+        env:
+          ASSISTNOW_DOWNLOAD_URL: ${{ secrets.ASSISTNOW_DOWNLOAD_URL }}
+          ASSISTNOW_VALID_HOURS: "30"
+          ASSISTNOW_TYPE: "predictive_orbits_1day"
+        run: |
+          python scripts/update_assistnow.py
+
+      - name: Commit updated AssistNow files
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add assistnow/assistnow.ubx assistnow/assistnow_manifest.json assistnow/latest.txt
+
+          if git diff --cached --quiet; then
+            echo "No AssistNow changes to commit."
+          else
+            git commit -m "Update AssistNow UBX"
+            git push
+          fi
