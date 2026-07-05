@@ -1,0 +1,15 @@
+{
+  "schema": "turoam-assistnow-manifest-v1",
+  "file": "assistnow.ubx",
+  "version": 1,
+  "assist_type": "predictive_orbits_1day",
+  "generated_utc": 1783246681,
+  "valid_from_utc": 1783246681,
+  "valid_until_utc": 1783354681,
+  "valid_hours": 30,
+  "size": 11312,
+  "crc32": "DE6D2DB9",
+  "ubx_frames": 176,
+  "mga_frames": 176,
+  "source": "github_actions_ublox_assistnow"
+}
