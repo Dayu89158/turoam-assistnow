@@ -31,6 +31,7 @@ jobs:
         env:
           ASSISTNOW_DOWNLOAD_URL: ${{ secrets.ASSISTNOW_DOWNLOAD_URL }}
           ASSISTNOW_VALID_HOURS: "30"
+          ASSISTNOW_MIN_REMAINING_HOURS: "8"
           ASSISTNOW_TYPE: "predictive_orbits_1day"
         run: |
           python scripts/update_assistnow.py
