@@ -91,13 +91,43 @@ def main() -> None:
     if not url:
         fail("ASSISTNOW_DOWNLOAD_URL is empty")
 
-    valid_hours = int(os.environ.get("ASSISTNOW_VALID_HOURS", "30"))
+        valid_hours = int(os.environ.get("ASSISTNOW_VALID_HOURS", "30"))
     assist_type = os.environ.get("ASSISTNOW_TYPE", "predictive_orbits_1day").strip()
+    min_remaining_hours = int(os.environ.get("ASSISTNOW_MIN_REMAINING_HOURS", "8"))
 
     if valid_hours <= 0:
         fail("ASSISTNOW_VALID_HOURS must be positive")
 
+    if min_remaining_hours < 0:
+        fail("ASSISTNOW_MIN_REMAINING_HOURS must be >= 0")
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Avoid consuming u-blox / Thingstream request quota when the existing
+    # AssistNow data in the repository is still fresh enough.
+    if MANIFEST_FILE.exists() and UBX_FILE.exists():
+        try:
+            old = json.loads(MANIFEST_FILE.read_text(encoding="utf-8"))
+            old_valid_until = int(old.get("valid_until_utc", 0))
+            old_size = int(old.get("size", 0))
+            old_crc32 = str(old.get("crc32", "")).upper().strip()
+            now_utc = int(time.time())
+            remaining_sec = old_valid_until - now_utc
+
+            if (
+                remaining_sec > min_remaining_hours * 3600
+                and old_size > 0
+                and old_crc32
+            ):
+                print("Existing AssistNow is still fresh enough.")
+                print(f"remaining_hours={remaining_sec / 3600:.2f}")
+                print(f"valid_until_utc={old_valid_until}")
+                print(f"size={old_size}")
+                print(f"crc32={old_crc32}")
+                print("Skip u-blox download to avoid request quota consumption.")
+                return
+        except Exception as e:
+            print(f"Existing manifest check failed, will download again: {e}")
 
     print("Downloading AssistNow UBX...")
     resp = requests.get(url, timeout=60)
