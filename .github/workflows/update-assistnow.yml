@@ -2,7 +2,7 @@ name: Update AssistNow UBX
 
 on:
   schedule:
-    # 每天 UTC 00:10 运行一次，避免整点拥堵
+    # 每天北京时间 00:10 运行；GitHub Actions cron 使用 UTC，所以这里是 UTC 16:10
     - cron: "10 16 * * *"
   workflow_dispatch:
 
