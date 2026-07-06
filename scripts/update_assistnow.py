@@ -22,9 +22,11 @@ def fail(msg: str) -> None:
 def ubx_checksum(frame_body: bytes) -> tuple[int, int]:
     ck_a = 0
     ck_b = 0
+
     for b in frame_body:
         ck_a = (ck_a + b) & 0xFF
         ck_b = (ck_b + ck_a) & 0xFF
+
     return ck_a, ck_b
 
 
@@ -41,7 +43,10 @@ def validate_ubx_stream(data: bytes) -> dict:
             fail(f"Truncated UBX frame header at offset {pos}")
 
         if data[pos] != 0xB5 or data[pos + 1] != 0x62:
-            fail(f"Invalid UBX sync at offset {pos}, bytes={data[pos:pos+8].hex(' ').upper()}")
+            fail(
+                f"Invalid UBX sync at offset {pos}, "
+                f"bytes={data[pos:pos+8].hex(' ').upper()}"
+            )
 
         cls = data[pos + 2]
         msg_id = data[pos + 3]
@@ -53,7 +58,7 @@ def validate_ubx_stream(data: bytes) -> dict:
         if end > len(data):
             fail(f"Truncated UBX payload at offset {pos}, length={length}")
 
-        body = data[pos + 2 : pos + 6 + length]
+        body = data[pos + 2:pos + 6 + length]
         ck_a, ck_b = ubx_checksum(body)
 
         got_a = data[pos + 6 + length]
@@ -68,7 +73,6 @@ def validate_ubx_stream(data: bytes) -> dict:
 
         frames += 1
 
-        # UBX-MGA class = 0x13
         if cls == 0x13:
             mga_frames += 1
 
@@ -91,7 +95,7 @@ def main() -> None:
     if not url:
         fail("ASSISTNOW_DOWNLOAD_URL is empty")
 
-        valid_hours = int(os.environ.get("ASSISTNOW_VALID_HOURS", "30"))
+    valid_hours = int(os.environ.get("ASSISTNOW_VALID_HOURS", "30"))
     assist_type = os.environ.get("ASSISTNOW_TYPE", "predictive_orbits_1day").strip()
     min_remaining_hours = int(os.environ.get("ASSISTNOW_MIN_REMAINING_HOURS", "8"))
 
@@ -103,14 +107,13 @@ def main() -> None:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Avoid consuming u-blox / Thingstream request quota when the existing
-    # AssistNow data in the repository is still fresh enough.
     if MANIFEST_FILE.exists() and UBX_FILE.exists():
         try:
             old = json.loads(MANIFEST_FILE.read_text(encoding="utf-8"))
             old_valid_until = int(old.get("valid_until_utc", 0))
             old_size = int(old.get("size", 0))
             old_crc32 = str(old.get("crc32", "")).upper().strip()
+
             now_utc = int(time.time())
             remaining_sec = old_valid_until - now_utc
 
@@ -126,6 +129,7 @@ def main() -> None:
                 print(f"crc32={old_crc32}")
                 print("Skip u-blox download to avoid request quota consumption.")
                 return
+
         except Exception as e:
             print(f"Existing manifest check failed, will download again: {e}")
 
@@ -137,7 +141,6 @@ def main() -> None:
 
     data = resp.content
 
-    # 防止下载到 HTML / JSON 错误页
     head = data[:64].lower()
     if b"<html" in head or b"<!doctype" in head or head.strip().startswith(b"{"):
         fail(f"Downloaded data does not look like raw UBX, first64={data[:64]!r}")
@@ -166,7 +169,7 @@ def main() -> None:
         "crc32": f"{crc32:08X}",
         "ubx_frames": stats["frames"],
         "mga_frames": stats["mga_frames"],
-        "source": "github_actions_ublox_assistnow"
+        "source": "github_actions_ublox_assistnow",
     }
 
     MANIFEST_FILE.write_text(
